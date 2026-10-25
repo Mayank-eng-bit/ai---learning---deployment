@@ -1,3 +1,4 @@
+from urllib.parse import quote_plus
 from flask import Flask, render_template, request, redirect, url_for, session
 import sqlite3
 import csv
@@ -11,41 +12,52 @@ from sklearn.metrics.pairwise import cosine_similarity
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
+
+# CLEAN COURSE/PROJECT RESOURCE MAPPING
+# Courses and projects use separate resource records.
+# No course receives a project GitHub repository.
+# No project receives course-only links.
+
 def load_recommendations():
-    recommendations = []
 
-    file_path = os.path.join(
-        os.path.dirname(__file__),
-        "dataset",
-        "recommendations.csv"
-    )
+    conn = get_db_connection()
+    rows = conn.execute("""
+        SELECT interest, skill_level, course, project, career,
+               difficulty, relevance, skills, description,
+               youtube_url, github_url
+        FROM content_recommendations
+        ORDER BY id
+    """).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
 
-    with open(file_path, "r", encoding="utf-8") as file:
-        reader = csv.DictReader(file)
-
-        for row in reader:
-            recommendations.append(row)
-
-    return recommendations
 
 def load_resources():
 
-    resources = {}
+    conn = get_db_connection()
+    rows = conn.execute("""
+        SELECT id, name, type, youtube_url, free_course_url,
+               paid_course_url, project_url
+        FROM content_resources
+        ORDER BY id
+    """).fetchall()
+    conn.close()
+    return {(row["type"], row["name"]): dict(row) for row in rows}
 
-    file_path = os.path.join(
-        os.path.dirname(__file__),
-        "dataset",
-        "resources.csv"
-    )
 
-    with open(file_path, "r", encoding="utf-8") as file:
+def get_content_resource(name, resource_type):
 
-        reader = csv.DictReader(file)
+    conn = get_db_connection()
+    row = conn.execute("""
+        SELECT id, name, type, youtube_url, free_course_url,
+               paid_course_url, project_url
+        FROM content_resources
+        WHERE name = ? AND type = ?
+        LIMIT 1
+    """, (name, resource_type)).fetchone()
+    conn.close()
+    return dict(row) if row else {}
 
-        for row in reader:
-            resources[row["name"]] = row
-
-    return resources
 
 # -----------------------------
 # ML CONTENT SIMILARITY MODEL
@@ -685,6 +697,16 @@ def get_recommendations(interest, skill_level):
             row["project"]
         )
 
+        course_resource = get_content_resource(
+            row["course"],
+            "course"
+        )
+
+        project_resource = get_content_resource(
+            row["project"],
+            "project"
+        )
+
 
         course_scores.append({
 
@@ -709,11 +731,11 @@ def get_recommendations(interest, skill_level):
             "skills":
                 row["skills"],
 
-            "youtube_url": 
-                row.get("youtube_url", ""),
+            "youtube_url":
+                course_resource.get("youtube_url", ""),
 
-            "github_url": 
-                row.get("github_url", "")
+            "github_url":
+                ""
 
             })
 
@@ -741,11 +763,11 @@ def get_recommendations(interest, skill_level):
             "skills":
                 row["skills"],
                 
-            "youtube_url": 
-                row.get("youtube_url", ""),
-            
-            "github_url": 
-                row.get("github_url", "")
+            "youtube_url":
+                project_resource.get("youtube_url", ""),
+
+            "github_url":
+                project_resource.get("project_url", "")
             
 
         })
@@ -785,9 +807,126 @@ app.secret_key = "ai_recommendation_system_secret_key"
 # -----------------------------
 
 def get_db_connection():
-    conn = sqlite3.connect("database/ai_learning.db")
+
+    database_dir = os.path.join(os.path.dirname(__file__), "database")
+    os.makedirs(database_dir, exist_ok=True)
+    database_path = os.path.join(database_dir, "ai_learning.db")
+    conn = sqlite3.connect(database_path)
     conn.row_factory = sqlite3.Row
     return conn
+
+# ============================================================
+# NORMALIZED CONTENT DATABASE
+# ============================================================
+# Courses and projects are separate resource types.
+# A course NEVER receives a project's GitHub repository.
+# A project NEVER receives a course's free/premium links.
+# ============================================================
+
+def initialize_content_database():
+
+    conn = get_db_connection()
+
+    # Rebuild ONLY content tables. User accounts/history/saved learning stay intact.
+    # Dropping these two content-only tables also removes stale schemas/data
+    # from earlier versions of the application.
+    conn.execute("DROP TABLE IF EXISTS content_recommendations")
+    conn.execute("DROP TABLE IF EXISTS content_resources")
+
+    conn.execute("""
+        CREATE TABLE content_recommendations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            interest TEXT NOT NULL,
+            skill_level TEXT NOT NULL,
+            course TEXT NOT NULL,
+            project TEXT NOT NULL,
+            career TEXT NOT NULL,
+            difficulty TEXT NOT NULL,
+            relevance INTEGER NOT NULL,
+            skills TEXT,
+            description TEXT,
+            youtube_url TEXT,
+            github_url TEXT
+        )
+    """)
+
+    conn.execute("""
+        CREATE TABLE content_resources (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            type TEXT NOT NULL CHECK(type IN ('course', 'project')),
+            youtube_url TEXT,
+            free_course_url TEXT,
+            paid_course_url TEXT,
+            project_url TEXT,
+            UNIQUE(name, type)
+        )
+    """)
+
+    base_dir = os.path.dirname(__file__)
+    recommendations_path = os.path.join(base_dir, "dataset", "recommendations.csv")
+    resources_path = os.path.join(base_dir, "dataset", "resources.csv")
+
+    if not os.path.exists(recommendations_path):
+        conn.close()
+        raise FileNotFoundError("dataset/recommendations.csv was not found.")
+    if not os.path.exists(resources_path):
+        conn.close()
+        raise FileNotFoundError("dataset/resources.csv was not found.")
+
+    with open(recommendations_path, "r", encoding="utf-8") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            conn.execute("""
+                INSERT INTO content_recommendations
+                (interest, skill_level, course, project, career, difficulty,
+                 relevance, skills, description, youtube_url, github_url)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                row.get("interest", "").strip(),
+                row.get("skill_level", "").strip(),
+                row.get("course", "").strip(),
+                row.get("project", "").strip(),
+                row.get("career", "").strip(),
+                row.get("difficulty", "").strip(),
+                int(row.get("relevance", 0) or 0),
+                row.get("skills", "").strip(),
+                row.get("description", "").strip(),
+                row.get("youtube_url", "").strip(),
+                row.get("github_url", "").strip()
+            ))
+
+    with open(resources_path, "r", encoding="utf-8") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            resource_type = row.get("type", "").strip().lower()
+            conn.execute("""
+                INSERT INTO content_resources
+                (id, name, type, youtube_url, free_course_url,
+                 paid_course_url, project_url)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                int(row.get("id", 0)),
+                row.get("name", "").strip(),
+                resource_type,
+                row.get("youtube_url", "").strip(),
+                row.get("free_course_url", "").strip() if resource_type == "course" else "",
+                row.get("paid_course_url", "").strip() if resource_type == "course" else "",
+                row.get("project_url", "").strip() if resource_type == "project" else ""
+            ))
+
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_content_resources_lookup
+        ON content_resources(name, type)
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_content_recommendations_interest
+        ON content_recommendations(interest, skill_level)
+    """)
+    conn.commit()
+    conn.close()
+
+
 
 # -----------------------------
 # CREATE SAVED RECOMMENDATIONS TABLE
@@ -872,6 +1011,8 @@ def create_history_table():
 
 
 create_history_table()
+
+initialize_content_database()
 # -----------------------------
 # HOME
 # -----------------------------
@@ -1030,7 +1171,7 @@ def roadmap():
     ):
 
         resource = resources.get(
-            step,
+            ("course", step),
             {}
         )
 
@@ -1279,48 +1420,43 @@ def logout():
     return redirect(url_for("home"))
 
 
-# -----------------------------
-# RUN APPLICATION
-# -----------------------------
 @app.route("/recommendation/<recommendation_type>/<path:name>")
 def recommendation(recommendation_type, name):
 
     # --------------------------------
-    # Check login
+    # LOGIN CHECK
     # --------------------------------
-
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-
     # --------------------------------
-    # Get logged-in user
+    # GET USER
     # --------------------------------
-
     conn = get_db_connection()
 
-    user = conn.execute(
+    user_row = conn.execute(
         "SELECT * FROM users WHERE id = ?",
         (session["user_id"],)
     ).fetchone()
 
     conn.close()
 
+    if user_row is None:
+        return redirect(url_for("login"))
+
+    user = dict(user_row)
 
     # --------------------------------
-    # Get personalized recommendations
+    # GET RECOMMENDATIONS
     # --------------------------------
-
     recommendations = get_recommendations(
         user["interest"],
         user["skill_level"]
     )
 
-
     # --------------------------------
-    # Find selected recommendation
+    # FIND SELECTED RECOMMENDATION
     # --------------------------------
-
     selected = None
 
     if recommendation_type == "course":
@@ -1328,39 +1464,29 @@ def recommendation(recommendation_type, name):
         for item in recommendations["course_scores"]:
 
             if item["name"] == name:
-
                 selected = item
                 break
-
 
     elif recommendation_type == "project":
 
         for item in recommendations["project_scores"]:
 
             if item["name"] == name:
-
                 selected = item
                 break
 
-
-    # --------------------------------
-    # Invalid recommendation
-    # --------------------------------
+    else:
+        return redirect(url_for("dashboard"))
 
     if selected is None:
         return redirect(url_for("dashboard"))
 
-
     # --------------------------------
-    # Find exact recommendation in CSV
+    # FIND ORIGINAL CSV ROW
     # --------------------------------
-
-    all_recommendations = load_recommendations()
-
     csv_data = None
 
-
-    for row in all_recommendations:
+    for row in load_recommendations():
 
         if recommendation_type == "course":
 
@@ -1368,10 +1494,8 @@ def recommendation(recommendation_type, name):
                 row["course"] == name
                 and row["interest"] == user["interest"]
             ):
-
                 csv_data = row
                 break
-
 
         elif recommendation_type == "project":
 
@@ -1379,23 +1503,15 @@ def recommendation(recommendation_type, name):
                 row["project"] == name
                 and row["interest"] == user["interest"]
             ):
-
                 csv_data = row
                 break
-
-
-    # --------------------------------
-    # If recommendation not found
-    # --------------------------------
 
     if csv_data is None:
         return redirect(url_for("dashboard"))
 
-
     # --------------------------------
-    # Get skills
+    # SKILLS
     # --------------------------------
-
     skills = []
 
     if csv_data.get("skills"):
@@ -1403,103 +1519,274 @@ def recommendation(recommendation_type, name):
         skills = [
             skill.strip()
             for skill in csv_data["skills"].split(",")
+            if skill.strip()
         ]
 
-
     # --------------------------------
-    # OPTIONAL RESOURCES
+    # LOAD RESOURCES
     # --------------------------------
-    #
-    # Free and paid resources still come
-    # from resources.csv.
-    #
-    # YouTube and GitHub MUST come from
-    # recommendations.csv.
-    # --------------------------------
-
-    resources = load_resources()
-
-    resource = resources.get(
+    resource = get_content_resource(
         name,
-        {
-            "free_course_url": "",
-            "paid_course_url": ""
+        recommendation_type
+    )
+
+    # --------------------------------
+    # HELPER FUNCTIONS
+    # --------------------------------
+
+    def is_direct_youtube(url):
+
+        if not url:
+            return False
+
+        url = url.strip()
+
+        return (
+            "youtube.com/watch?v=" in url
+            or "youtu.be/" in url
+        )
+
+
+    def is_direct_github(url):
+
+        if not url:
+            return False
+
+        url = url.strip()
+
+        if not url.startswith("https://github.com/"):
+            return False
+
+        path = url[len("https://github.com/"):].strip("/")
+        parts = path.split("/")
+        blocked = {
+            "search", "topics", "collections", "marketplace",
+            "explore", "trending", "issues", "pulls", "discussions"
         }
-    )
+
+        return (
+            len(parts) == 2
+            and all(parts)
+            and parts[0].lower() not in blocked
+            and parts[1].lower() not in blocked
+        )
 
 
     # --------------------------------
-    # DIRECT LINKS FROM RECOMMENDATIONS
+    # DEFAULT EMPTY LINKS
     # --------------------------------
+    youtube_url = ""
+    free_course_url = ""
+    paid_course_url = ""
+    project_url = ""
 
-    youtube_url = csv_data.get(
-        "youtube_url",
-        ""
-    )
+    # ============================================================
+    # COURSE RESOURCE LOGIC
+    # ============================================================
 
-    github_url = csv_data.get(
-        "github_url",
-        ""
-    )
+    if recommendation_type == "course":
+
+        # --------------------------------------------------------
+        # 1. YOUTUBE
+        # ALWAYS prefer the direct YouTube URL from
+        # recommendations.csv
+        # --------------------------------------------------------
+
+        recommendation_youtube = csv_data.get(
+            "youtube_url",
+            ""
+        ).strip()
+
+        if is_direct_youtube(recommendation_youtube):
+
+            youtube_url = recommendation_youtube
+
+        # If recommendation CSV doesn't have a direct link,
+        # try resources.csv
+        elif is_direct_youtube(
+            resource.get("youtube_url", "")
+        ):
+
+            youtube_url = resource["youtube_url"].strip()
 
 
-    # --------------------------------
-    # Render recommendation page
-    # --------------------------------
-    ml_similarity = selected.get("ml_similarity", 0)
+        # --------------------------------------------------------
+        # 2. FREE COURSE
+        # --------------------------------------------------------
+
+        free_course_url = resource.get(
+            "free_course_url",
+            ""
+        ).strip()
+
+
+        # --------------------------------------------------------
+        # 3. PREMIUM COURSE
+        # --------------------------------------------------------
+
+        paid_course_url = resource.get(
+            "paid_course_url",
+            ""
+        ).strip()
+
+
+        # --------------------------------------------------------
+        # 4. PROJECT EXAMPLE
+        # --------------------------------------------------------
+
+        project_candidate = resource.get(
+            "project_url",
+            ""
+        ).strip()
+
+        if is_direct_github(project_candidate):
+            project_url = project_candidate
+        else:
+            project_url = ""
+
+
+    # ============================================================
+    # PROJECT RESOURCE LOGIC
+    # ============================================================
+
+    elif recommendation_type == "project":
+
+    # ========================================================
+    # PROJECT YOUTUBE
+    #
+    # NEVER take YouTube from recommendations.csv.
+    #
+    # Only use the verified YouTube URL from resources.csv.
+    # If there is no verified project tutorial, keep it empty.
+    # ========================================================
+
+        resource_youtube = resource.get(
+            "youtube_url",
+         ""
+        ).strip()
+
+        if is_direct_youtube(resource_youtube):
+
+            youtube_url = resource_youtube
+
+        else:
+
+            youtube_url = ""
+
+
+        # ========================================================
+        # PROJECT GITHUB
+        #
+        # Only use the direct GitHub repository from resources.csv.
+        # ========================================================
+
+        resource_github = resource.get(
+            "project_url",
+            ""
+        ).strip()
+
+        if is_direct_github(resource_github):
+
+            project_url = resource_github
+
+        else:
+
+            project_url = ""
+
+
+        # ========================================================
+        # PROJECTS NEVER SHOW COURSE LINKS
+        # ========================================================
+
+        free_course_url = ""
+
+        paid_course_url = ""
+
+
+        # --------------------------------------------------------
+        # GITHUB
+        # Use ONLY the exact selected project's resource row.
+        # --------------------------------------------------------
+
+        resource_github = resource.get(
+            "project_url",
+            ""
+        ).strip()
+
+        if is_direct_github(resource_github):
+            project_url = resource_github
+        else:
+            project_url = ""
+
+
+        # --------------------------------------------------------
+        # PROJECTS DO NOT SHOW COURSE LINKS
+        # --------------------------------------------------------
+
+        free_course_url = ""
+        paid_course_url = ""
+
+
+    # ============================================================
+    # FINAL SAFETY CHECK
+    # ============================================================
+
+    # Never allow YouTube search pages
+    if not is_direct_youtube(youtube_url):
+
+        youtube_url = ""
+
+
+    # Never allow GitHub search/topic pages
+    if not is_direct_github(project_url):
+
+        project_url = ""
+
+
+    # ============================================================
+    # SEND DATA TO HTML
+    # ============================================================
+
     return render_template(
-    "recommendation.html",
 
-    # Basic information
-    name=name,
-    recommendation_type=recommendation_type,
+        "recommendation.html",
 
-    description=csv_data.get(
-        "description",
-        ""
-    ),
+        # Basic information
+        name=name,
 
-    difficulty=csv_data.get(
-        "difficulty",
-        ""
-    ),
+        recommendation_type=recommendation_type,
 
-    skills=skills,
+        description=csv_data.get(
+            "description",
+            ""
+        ),
 
-    # Recommendation information
-    score=selected["score"],
+        difficulty=csv_data.get(
+            "difficulty",
+            ""
+        ),
 
-    ml_similarity=selected.get(
-        "ml_similarity",
-        0
-    ),
+        skills=skills,
 
-    interest=user["interest"],
+        # Recommendation information
+        score=selected["score"],
 
-    skill_level=user["skill_level"],
+        interest=user["interest"],
 
-    # Direct resource links
-    youtube_url=csv_data.get(
-        "youtube_url",
-        ""
-    ),
+        skill_level=user["skill_level"],
 
-    github_url=csv_data.get(
-        "github_url",
-        ""
-    ),
+        # Resources
+        youtube_url=youtube_url,
 
-    # Optional resources
-    free_course_url=resource.get(
-        "free_course_url",
-        ""
-    ),
+        free_course_url=free_course_url,
 
-    paid_course_url=resource.get(
-        "paid_course_url",
-        ""
+        paid_course_url=paid_course_url,
+
+        project_url=project_url,
+
+        # Compatibility
+        resource_url=free_course_url
     )
-)
 
     
 
