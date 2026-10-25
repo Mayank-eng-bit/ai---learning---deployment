@@ -815,6 +815,28 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def create_users_table():
+    conn = get_db_connection()
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            full_name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            interest TEXT NOT NULL,
+            skill_level TEXT NOT NULL
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+create_users_table()
+
+
+
 # ============================================================
 # NORMALIZED CONTENT DATABASE
 # ============================================================
