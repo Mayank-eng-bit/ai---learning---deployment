@@ -912,7 +912,7 @@ def initialize_content_database():
                 row.get("youtube_url", "").strip(),
                 row.get("free_course_url", "").strip() if resource_type == "course" else "",
                 row.get("paid_course_url", "").strip() if resource_type == "course" else "",
-                row.get("project_url", "").strip() if resource_type == "project" else ""
+                (row.get("project_url") or "").strip() if resource_type == "project" else ""
             ))
 
     conn.execute("""
