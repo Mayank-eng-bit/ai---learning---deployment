@@ -50,7 +50,7 @@ id,name,type,youtube_url,free_course_url,paid_course_url,project_url
 48,Loan Approval Prediction,project,https://www.youtube.com/watch?v=pPZ3G0vz23o,,,https://github.com/ParthS007/Loan-Approval-Prediction
 49,Image Classification System,project,https://www.youtube.com/watch?v=01sAkU_NvOY,,,https://github.com/sabar0401/Image_Classification_System
 50,Text Classification System,project,https://www.youtube.com/watch?v=fOvTtapxa9c,,,https://github.com/qiaochen/TextClsApp
-51,End-to-End ML Deployment,project,https://www.youtube.com/watch?v=1z0bYqYp7dM
+51,End-to-End ML Deployment,project,https://www.youtube.com/watch?v=1z0bYqYp7dM,,,https://github.com/DECTEN0/end-to-end-ml-app
 52,AI Chatbot,project,https://www.youtube.com/watch?v=9REJ66cRlCM,,,https://github.com/alfredfrancis/ai-chatbot-framework
 53,Image Recognition App,project,https://www.youtube.com/watch?v=nlQ3sW1N9qE,,,https://github.com/bhimrazy/Image-Recognition-App-using-FastAPI-and-PyTorch
 54,Simple Voice Assistant,project,https://www.youtube.com/watch?v=CQSSt1lMHjk,,,https://github.com/DDX-BiswaRanjan/Simple-Voice-Assistant
@@ -65,10 +65,10 @@ id,name,type,youtube_url,free_course_url,paid_course_url,project_url
 63,Data Cleaning Pipeline,project,https://www.youtube.com/watch?v=GPVsHOlRBBI,,,https://github.com/Developer-Sahil/data-cleaning-pipeline
 64,Sales Prediction System,project,https://www.youtube.com/watch?v=WDlKOoGMaPw,,,https://github.com/alanmaehara/Sales-Prediction
 65,Customer Insights Dashboard,project,https://www.youtube.com/watch?v=0P7QnIQDBJY,,,https://github.com/nicodatas/customer_insights_dashboard
-66,Sales Analytics System,project,https://www.youtube.com/watch?v=0P7QnIQDBJY,,,https://github.com/arish-panjwani/youtube-trending-analysis
+66,Sales Analytics System,project,https://www.youtube.com/watch?v=0P7QnIQDBJY,,,https://github.com/Zahra-ziaee/sales-analytics-dashboard
 67,Customer Analytics Platform,project,https://www.youtube.com/watch?v=0P7QnIQDBJY,,,https://github.com/AbhijeetDasBakshi/customer-churn-prediction
 68,Fraud Detection System,project,https://www.youtube.com/watch?v=i_LwzRVP7bg,,,https://github.com/OlawumiSalaam/fraud-detection-system
-69,Demand Forecasting System,project,https://www.youtube.com/watch?v=QIUxPv5PJOY,,,https://github.com/alanmaehara/Sales-Prediction
+69,Demand Forecasting System,project,https://www.youtube.com/watch?v=QIUxPv5PJOY,,,https://github.com/facebook/prophet
 70,Portfolio Website,project,https://www.youtube.com/watch?v=0YFrGy_mzjY,,,https://github.com/codewithsadee/pfolio
 71,Responsive Landing Page,project,https://www.youtube.com/watch?v=gf71_c_UjHQ,,,https://github.com/Hazem-ward/project-landing-page
 72,Personal Blog Website,project,https://www.youtube.com/watch?v=1QGLHOaRLwM,,,https://github.com/codewithsadee/wren
@@ -78,16 +78,25 @@ id,name,type,youtube_url,free_course_url,paid_course_url,project_url
 76,Learning Management System,project,https://www.youtube.com/watch?v=dam0GPOAvVI,,,https://github.com/SMMousaviSP/lms
 77,Online Store Platform,project,https://www.youtube.com/watch?v=XSRh1ZHfMOg,,,https://github.com/justdjango/django-ecommerce
 78,Secure Web Application,project,https://www.youtube.com/watch?v=In8fuzj3gck,,,https://github.com/ctsit/barebones-flask-app
-79,Automation Tool,project,https://www.youtube.com/watch?v=qbW6FRbaSl0,,,https://github.com/pydoit/doit
+79,Automation Tool,project,https://www.youtube.com/watch?v=qbW6FRbaSl0,,,https://github.com/AlSweigart/automateboringstuff
 80,File Management Application,project,https://www.youtube.com/watch?v=qbW6FRbaSl0,,,https://github.com/Celestial-0/FILE-MANAGER
-81,Quiz Application,project,https://www.youtube.com/watch?v=PkZNo7MFNFg
+81,Quiz Application,project,https://www.youtube.com/watch?v=PkZNo7MFNFg,,,https://github.com/aman-azam-python/python-quiz-application
 82,Python Web Application,project,https://www.youtube.com/watch?v=dam0GPOAvVI,,,https://github.com/ctsit/barebones-flask-app
-83,Web Automation Tool,project,https://www.youtube.com/watch?v=qbW6FRbaSl0,,,https://github.com/pydoit/doit
+83,Web Automation Tool,project,https://www.youtube.com/watch?v=qbW6FRbaSl0,,,https://github.com/SeleniumHQ/selenium
 84,Weather API Application,project,https://www.youtube.com/watch?v=WZNG8UomjSI,,,https://github.com/ramanjeet-code/Weather_App
 85,Data Analysis Application,project,https://www.youtube.com/watch?v=0P7QnIQDBJY,,,https://github.com/technologychannel/Student-Data-Analysis
 86,Multi-User Python Application,project,https://www.youtube.com/watch?v=dam0GPOAvVI,,,https://github.com/ctsit/barebones-flask-app
 87,REST API Backend,project,https://www.youtube.com/watch?v=qbLc5a9jdXo,,,https://github.com/ctsit/barebones-flask-app
-88,Feature Engineering Pipeline,project,https://www.youtube.com/watch?v=7sJaRHF03K8
+88,Feature Engineering Pipeline,project,https://www.youtube.com/watch?v=7sJaRHF03K8,,,https://github.com/Shubham-S151/End-to-End-MLOps-Pipeline
 89,AI Text Assistant,project,https://www.youtube.com/watch?v=9REJ66cRlCM,,,https://github.com/dicusa/AI-assistant
 90,Sales Forecasting System,project,https://www.youtube.com/watch?v=QIUxPv5PJOY,,,https://github.com/alanmaehara/Sales-Prediction
 91,Library Management System,project,https://www.youtube.com/watch?v=g79igk3edru,,,https://github.com/kabirkr/Library-Management-System
+93,Model Deployment,course,https://www.youtube.com/watch?v=1z0bYqYp7dM,https://developers.google.com/machine-learning/crash-course/production-ml-systems,https://www.udemy.com/courses/search/?q=machine+learning+model+deployment,
+94,NumPy Fundamentals,course,https://www.youtube.com/watch?v=QUT1VHiLmmI,https://numpy.org/learn/,https://www.udemy.com/courses/search/?q=NumPy+fundamentals,
+95,Flask APIs,course,https://www.youtube.com/watch?v=dam0GPOAvVI,https://flask.palletsprojects.com/en/stable/tutorial/,https://www.udemy.com/courses/search/?q=Flask+REST+API,
+96,Python Testing,course,https://www.youtube.com/watch?v=6tNS--WetLI,https://docs.pytest.org/en/stable/getting-started.html,https://www.udemy.com/courses/search/?q=Python+testing+pytest,
+97,Student Data Prediction,project,https://www.youtube.com/watch?v=0SaQ6ru-5TM,,,https://github.com/naomilago/Student-Performance-Predictor
+98,ML Prediction API,project,https://www.youtube.com/watch?v=1z0bYqYp7dM,,,https://github.com/talhayilmazc/End-to-End-ML-Pipeline-with-API-Deployment
+99,Numerical Analysis Tool,project,https://www.youtube.com/watch?v=QUT1VHiLmmI,,,https://github.com/kvenkatamanasa/numpy-pandas-car-data-analysis
+100,Student Management API,project,https://www.youtube.com/watch?v=dam0GPOAvVI,,,https://github.com/sangyaaa/student-management-api
+101,Python Testing Dashboard,project,https://www.youtube.com/watch?v=6tNS--WetLI,,,https://github.com/foomoon/test-dashboard
